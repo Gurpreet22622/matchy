@@ -1,0 +1,77 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  
+  .form-containero {
+    background: rgb(181, 119, 239);
+    padding: 40px;
+    border-radius: 10px;
+    justify-content: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+    width: 300px;
+  }
+  
+  .logout-buttono {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .logout-buttono:hover {
+    background-color: #e60000;
+  }
+  
+  .form-titleo {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .form-groupo {
+    margin-bottom: 20px;
+  }
+  
+  .form-controlo {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #f8f8f8;
+  }
+  
+  .checkbox-labelo {
+    display: block;
+    margin-bottom: 10px;
+    color: #555;
+  }
+  
+  .submit-buttono {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .submit-buttono:hover {
+    background-color: #45a049;
+  }
+  
