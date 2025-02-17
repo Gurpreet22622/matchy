@@ -44,6 +44,11 @@ body {
   .form-groupo {
     margin-bottom: 20px;
   }
+  .form-groupoo input {
+    width: 53%; 
+    padding: 8px;
+    font-size: 16px;
+  }
   
   .form-controlo {
     width: 100%;

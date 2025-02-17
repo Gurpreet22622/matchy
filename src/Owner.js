@@ -1,4 +1,4 @@
-import React, { useState} from "react";
+import React, { useEffect,useState} from "react";
 import {useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -23,57 +23,160 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+const CACHE_KEY = "auth0_user_data";
+const CACHE_DURATION = 60 * 60 * 1000;
+
 function Owner() {
     const navigate = useNavigate();
+    const [propertyType, setPropertyType] = useState('BHK1');
     const [location, setLocation] = useState(null);
-    const {user, logout, isAuthenticated } = useAuth0();
-    const [file, setFile] = useState()
-    const [error, setError] = useState('');
+    const [locality, setLocality] = useState(null);
+    const [propertyarea, setPropertyarea] = useState(null);
+    const [lease_type, setLeaseType] = useState('Family');
+    const [furnished_status, setFurnishedStatus] = useState('Not Furnished');
+    const [internet, setInternet] = useState(false);
+    const [AC, setAC] = useState(false);
+    const [RO, setRO] = useState(false);
+    const [geezer, setGeezer] = useState(false);
+    const [kitchen, setKitchen] = useState(false);
+    const {user, getIdTokenClaims, logout, isAuthenticated } = useAuth0();
+    const [cachedUser, setCachedUser] = useState(null);
+    // const [file, setFile] = useState()
+    const [error,  setError] = useState('');
+    const [owner, setOwner] = useState(null);
 
-    function handleChange(event) {
-      const selectedFile = event.target.files[0];
-  
-      if (selectedFile) {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-  
-        video.onloadedmetadata = () => {
-          window.URL.revokeObjectURL(video.src);
-          const duration = video.duration;
-  
-          if (duration > 300) { // 300 seconds = 5 minutes
-            setError('The video is too long. Please select a video that is less than 5 minutes.');
-            event.target.value = null; // Clear the selected file
-          } else {
-            setError('');
-            setFile(selectedFile); // Set the file if it passes the duration check
-          }
-        };
-  
-        video.src = URL.createObjectURL(selectedFile);
+    const getCachedData = () => {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_DURATION) {
+          return data; // Return cached data if still valid
+        }
       }
+      return null;
     }
+    useEffect(() => {
+      if (user) {
+        // Store user in cache when available
+        const cachedData = { user, isAuthenticated, timestamp: Date.now() };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cachedData));
+        setCachedUser(user);
+      } else {
+        // If user is null, check cache
+        const cachedUser = getCachedData();
+        if (cachedUser) {
+          setCachedUser(cachedUser);
+        }
+      }
+      const interval = setInterval(() => {
+        if (user) {
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({ user, isAuthenticated, timestamp: Date.now() })
+          );
+        }
+      }, CACHE_DURATION);
+  
+      return () => clearInterval(interval);
+    }, [user, isAuthenticated]);
+
+    useEffect(() => {
+      axios
+        .get("http://localhost:8080/user", {
+          params: { email: cachedUser?.email }, // Query parameter
+        })
+        .then((response) => setOwner(response.data))
+        .catch((error) => console.error("Error fetching data:", error));
+    }, [cachedUser?.email]);
+
+
+    console.log("owner is here->",owner, user)
+    getIdTokenClaims().then((idToken)=>{console.log("here-",idToken)})
+    console.log("check items-> \npropertyType",propertyType,"\nlocation",location,"\nlocality",locality,"\npropertyarea",propertyarea,"\nleasetype",lease_type,"\nfurnishedStatus",furnished_status,"\ninternet",internet,"\nac",AC,"\nro",RO,"\ngeezer",geezer,"\nkitchen",kitchen)
+
+    // function handleChange(event) {
+    //   const selectedFile = event.target.files[0];
+  
+    //   if (selectedFile) {
+    //     const video = document.createElement('video');
+    //     video.preload = 'metadata';
+  
+    //     video.onloadedmetadata = () => {
+    //       window.URL.revokeObjectURL(video.src);
+    //       const duration = video.duration;
+  
+    //       if (duration > 300) { // 300 seconds = 5 minutes
+    //         setError('The video is too long. Please select a video that is less than 5 minutes.');
+    //         event.target.value = null; // Clear the selected file
+    //       } else {
+    //         setError('');
+    //         setFile(selectedFile); // Set the file if it passes the duration check
+    //       }
+    //     };
+  
+    //     video.src = URL.createObjectURL(selectedFile);
+    //   }
+    // }
     
     function handleSubmit(event) {
       event.preventDefault();
-      if (!file) {
-        setError('Please select a valid video file.');
+      // if (!file) {
+      //   setError('Please select a valid video file.');
+      //   return;
+      // }
+      if(!location){
+        setError('Please add your location.');
         return;
+      }else if(!locality){
+        setError('Please add your locality.');
+        return;
+      }else if(!propertyarea){
+        setError('Please add the area of your property.')
+      }else{
+      setError(null)
       }
+
+      axios.post('http://localhost:8080/registerNP', {
+        user_id: owner.id,
+        property_type: propertyType,
+        location: {latitude:location.lat, longitude:location.lng},
+        locality: locality,
+        lease_type: lease_type,
+        furnished_status: furnished_status,
+        property_area: parseFloat(propertyarea),
+        internet:internet,
+        ac:AC,
+        ro:RO,
+        kitchen:kitchen,
+        geezer:geezer
+    })
+    .then(response => {
+        console.log("Property is registered registered in backend:", response.data);
+        logout({ returnTo: window.location.origin });
+        toHome();
+    })
+    .catch(error => {
+        console.error("Error registering property:", error);
+    });
+
+}
+
+
+
   
-      const url = 'http://localhost:3000/uploadFile';
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileName', file.name);
-      const config = {
-        headers: {
-          'content-type': 'multipart/form-data',
-        },
-      };
-      axios.post(url, formData, config).then((response) => {
-        console.log(response.data);
-      });
-    }
+      // const url = 'http://localhost:3000/upload';
+      // const formData = new FormData();
+      // formData.append('file', file);
+      // formData.append('fileName', file.name);
+      // const config = {
+      //   headers: {
+      //     'content-type': 'multipart/form-data',
+      //   },
+      // };
+      // axios.post(url, formData, config).then((response) => {
+      //   console.log(response.data);
+      // });
+    
   
 
     const toHome = async()=>{
@@ -126,14 +229,15 @@ function Owner() {
         </button>
       )} 
       <h2 className="form-titleo">King of the House</h2>
-      <h2 className="form-titleo">hello {user.name}</h2>
+      <h2 className="form-titleo">hello {cachedUser?.name}</h2>
       <form className="preferences-formo">
         <div className="form-groupo">
-          <label htmlFor="dropdown1">What you want to rent:</label>
-          <select id="dropdown1" className="form-controlo">
-            <option value="option1">Complete House</option>
-            <option value="option2">Floor</option>
-            <option value="option3">Seperate Rooms</option>
+          <label htmlFor="dropdown1">What is your property type:</label>
+          <select id="dropdown1" className="form-controlo" onChange={e => setPropertyType(e.target.value)}>
+            <option value="BHK1">1 BHK</option>
+            <option value="BHK2">2 BHK</option>
+            <option value="BHK3">3 BHK</option>
+            <option value="BHK4">4 BHK</option>
           </select>
         </div>
         
@@ -155,20 +259,58 @@ function Owner() {
                         </MapContainer>
                     </div>
                 )}
+
           
         </div>
         <div className="form-groupo">
-            <label id="address">Enter your complete address:</label>
-            <input type="text" />
+            <label id="locality">Enter your Locaclity:</label>
+            <input type="text" onChange={e => setLocality(e.target.value)}/>
           </div>
 
-          <div className="form-groupo">
+          {/* <div className="form-groupo">
             <h3>Upload a video file of your room!</h3>
             <input type="file" accept="video/*" onChange={handleChange} />
             {error && <p style={{ color: 'red' }}>{error}</p>}
+          </div> */}
+          <div className="form-groupo">
+          <label htmlFor="dropdown2">What is your lease type:</label>
+          <select id="dropdown2" className="form-controlo" onChange={e => setLeaseType(e.target.value)}>
+            <option value="Family">Family</option>
+            <option value="Bachlors">Bachlors</option>
+            <option value="Anyone">Anyone</option>
+          </select>
+        </div>
+        <div className="form-groupo">
+          <label htmlFor="dropdown3">Furnished status:</label>
+          <select id="dropdown3" className="form-controlo" onChange={e => setFurnishedStatus(e.target.value)}>
+            <option value="Not Furnished">Not Furnished</option>
+            <option value="Semi Furnished">Semi Furnished</option>
+            <option value="Fully Furnished">Fully Furnished</option>
+          </select>
+        </div>
+        <div className="form-groupoo">
+            <label id="area">Property area(sq ft):</label>
+            <input type="number" step="0.1" onChange={e => setPropertyarea(e.target.value)}/>
+          </div><br></br>
+          <text>Amanities:</text><br></br>
+          <div className="form-groupo">
+          <input type="checkbox" onChange={e => setInternet(e.target.checked)}/>
+          <text>Internet</text><br></br>
+          <input type="checkbox" onChange={e => setAC(e.target.checked)}/>
+          <text>AC</text><br></br>
+          <input type="checkbox" onChange={e => setRO(e.target.checked)}/>
+          <text>RO</text><br></br>
+          <input type="checkbox" onChange={e => setKitchen(e.target.checked)}/>
+          <text>Kitchen</text><br></br>
+          <input type="checkbox" onChange={e => setGeezer(e.target.checked)}/>
+          <text>Geezer</text><br></br>
           </div>
 
-          <button type="submit" className="submit-buttono">Submit</button>
+
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+
+
+          <button onClick={handleSubmit} className="submit-buttono">Submit</button>
         </form>
     </div>
         </>
