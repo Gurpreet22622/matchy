@@ -7,7 +7,10 @@ body, html {
     background: linear-gradient(135deg, #4a90e2, #9013fe);
     color: #fff;
     overflow-x: hidden;
+    box-sizing: border-box;
 }
+
+
 
 .container {
     display: flex;
@@ -125,8 +128,8 @@ body, html {
 
 @media (max-width: 1024px) {
     .property-container {
-        flex: 1 1 calc(50% - 20px); /* 2 per row on tablets */
-        max-width: calc(50% - 20px);
+        flex: 1 1 calc(25% - 20px); /* 2 per row on tablets */
+        max-width: calc(25% - 20px);
     }
 }
 

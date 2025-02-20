@@ -8,32 +8,46 @@ import cityData from './city.json'
 import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
 
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 const cities = cityData.map(entry => entry.city)
 
 
-let DefaultIcon = L.icon({
-    iconUrl: markerIcon,
-    iconRetinaUrl: markerIcon2x,
-    shadowUrl: markerShadow,
+const blueIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    shadowSize: [41, 41]
 });
 
-L.Marker.prototype.options.icon = DefaultIcon;
+const redIcon = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+});
+
+// L.Marker.prototype.options.icon = DefaultIcon;
 
 function Home() {
     const [Host, setHost] = useState(false);
     const [Owner, setOwner] = useState(false);
     const [location, setLocation] = useState(null);
     const [nearbyProperty, setNearbyProperty] = useState([]);
+    const [route, setRoute] = useState(null);
     const { user,loginWithRedirect, logout, isAuthenticated } = useAuth0();
+    const [selectedProperties, setSelectedProperties] = useState([]);
     const navigate = useNavigate();
+
+
+    const handleCheckboxChange = (propertyItem) => {
+        setSelectedProperties((prevSelected) => {
+            if (prevSelected.some((item) => item.property.id === propertyItem.property.id)) {
+                return prevSelected.filter((item) => item.property.id !== propertyItem.property.id);
+            } else {
+                return [...prevSelected, propertyItem];
+            }
+        });
+    };
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -142,15 +156,126 @@ function Home() {
     
         try {
           const response = await fetch(url, { method: "GET" });
-          const data = await response.json();  
-          setNearbyProperty(data);
-          alert("Check console for nearby properties");
+          const data = await response.json(); 
+          if (data == null) {
+            setNearbyProperty([]);
+          } else {
+            setNearbyProperty(data);
+          }
+        //   alert("Check console for nearby properties");
           console.log("Nearby Properties:", nearbyProperty)
         } catch (error) {
           console.error("Error fetching properties:", error);
           alert("Failed to fetch properties.");
         }
       };
+
+
+
+      const solveTSP = async (start, propertyLocations) => {
+        const apiKey = "5b3ce3597851110001cf62484b26d3f736534d2590b3b7e4a45bad34"; // Replace with your OpenRouteService API key
+        const locations = [
+            [start.longitude, start.latitude], // Start point first
+            ...propertyLocations.map((prop) => [
+              prop.property.location.longitude,
+              prop.property.location.latitude,
+            ]),
+          ];
+        
+          const url = "https://api.openrouteservice.org/v2/matrix/driving-car";
+        
+          try {
+            // Step 1: Fetch Distance Matrix from OpenRouteService
+            const response = await axios.post(
+              url,
+              { locations, metrics: ["distance"] },
+              { headers: { Authorization: apiKey, "Content-Type": "application/json" } }
+            );
+        
+            const dist = response.data.distances;
+            const N = dist.length;
+        
+            // Step 2: Solve TSP using Held-Karp Dynamic Programming
+            const memo = Array.from({ length: N }, () => Array(1 << N).fill(null));
+        
+            const tsp = (pos, mask) => {
+              if (mask === (1 << N) - 1) return dist[pos][0]; // Return to start
+              if (memo[pos][mask] !== null) return memo[pos][mask];
+        
+              let minCost = Infinity;
+              for (let nxt = 0; nxt < N; nxt++) {
+                if (!(mask & (1 << nxt))) {
+                  let newCost = dist[pos][nxt] + tsp(nxt, mask | (1 << nxt));
+                  minCost = Math.min(minCost, newCost);
+                }
+              }
+              return (memo[pos][mask] = minCost);
+            };
+        
+            // Step 3: Reconstruct Path
+            let mask = 1,
+              pos = 0,
+              route = [0];
+        
+            while (mask !== (1 << N) - 1) {
+              let nextPos = -1;
+              let minCost = Infinity;
+              for (let nxt = 0; nxt < N; nxt++) {
+                if (!(mask & (1 << nxt))) {
+                  let cost = dist[pos][nxt] + tsp(nxt, mask | (1 << nxt));
+                  if (cost < minCost) {
+                    minCost = cost;
+                    nextPos = nxt;
+                  }
+                }
+              }
+              if (nextPos === -1) break;
+              mask |= 1 << nextPos;
+              pos = nextPos;
+              route.push(pos);
+            }
+        
+            // Step 4: Format Output in Required Structure
+            const orderedRoute = route.slice(1).map((index, i) => ({
+              order: i + 1,
+              property: propertyLocations[index - 1].property, // Get original property data
+              distanceFromPrevious: dist[route[i]][index],
+            }));
+            setRoute(orderedRoute);
+            return orderedRoute;
+          } catch (error) {
+            console.error("Error fetching distance matrix:", error);
+            return [];
+          }
+        };
+
+        const openGoogleMaps = () => {
+            if (!route) return;
+        
+            const waypoints = route
+              .map((place) => `${place.property.location.latitude},${place.property.location.longitude}`)
+              .join("|");
+        
+            const startCoords = `${location.lat},${location.lng}`;
+            const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${startCoords}&destination=${startCoords}&waypoints=${waypoints}&travelmode=driving`;
+        
+            window.open(googleMapsUrl, "_blank");
+            setRoute(null);
+          };
+
+      const handleClick2 = async () => {
+        let startPoint = {latitude: location.lat, longitude: location.lng};
+        let propLocations =  selectedProperties.map(item => ({
+            property: {
+              id: item.property.id,
+              location: item.property.location
+            }
+          }));
+          solveTSP(startPoint, propLocations).then(route => console.log("Optimized Route:", route));
+      };
+
+
+      
 
     // useEffect(() => {
     //     if (isAuthenticated) {
@@ -179,11 +304,14 @@ function Home() {
         <>
     <meta charSet="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Beautiful Landing Page</title>
+
     <link rel="stylesheet" href="styles.css" />
+
     <div className="container">
+        <div>
         <h1 className="title">Welcome to Our Website</h1>
         <p className="subtitle">Your journey for property deals starts here</p>
+        </div>
         <div className="button-container">
             <button className="button primary" onClick={() => { setHost(true); setOwner(false); setLocation(null)}}>
                 Host
@@ -235,35 +363,30 @@ function Home() {
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             />
-                            <Marker position={[location.lat, location.lng]}>
+                            <Marker position={[location.lat, location.lng]}
+                                    icon={blueIcon}>
                                 <Popup>
                                     Your Location
                                 </Popup>
                             </Marker>
+                            {nearbyProperty.map((propertyItem, index) => (
+                <Marker
+                    key={index}
+                    position={[propertyItem.property.location.latitude, propertyItem.property.location.longitude]}
+                    icon={redIcon}
+                >
+                    <Popup>
+                        {propertyItem.property.property_type} - {propertyItem.property.locality}
+                    </Popup>
+                </Marker>
+            ))}
                         </MapContainer><br></br>
                         <button type="button" style={{backgroundColor:'green',borderRadius:'20px'}} onClick={handleClick}>see nearby properties</button>
                     </div>
                     
                 )}
             </div>
-            {/* <div className="property-container">
-                <h3>{nearbyProperty[0].property.property_type}</h3>
-                <p>{nearbyProperty[0].property.locality}<br></br>
-                    {nearbyProperty[0].property.furnished_status}<br></br>
-                    {nearbyProperty[0].property.property_area} sq ft<br></br>
-                    lease type: {nearbyProperty[0].property.lease_type}<br></br>
-                    amanities: 
-                    {nearbyProperty[0].property.internet && (<text>internet</text>)}
-                    {nearbyProperty[0].property.ac && (<text> ac</text>)}
-                    {nearbyProperty[0].property.ro && (<text> ro</text>)}
-                    {nearbyProperty[0].property.kitchen && (<text> kitchen</text>)}
-                    {nearbyProperty[0].property.geezer && (<text> geezer</text>)}
-
-                </p>
-
-                
-            </div> */}
-            {nearbyProperty.length > 0 && (
+            {/* {nearbyProperty.length > 0 && (
         <div className="property-grid">
             {nearbyProperty.map((propertyItem, index) => (
                 <div className="property-container" key={index}>
@@ -283,7 +406,45 @@ function Home() {
                 </div>
             ))}
         </div>
-    )}
+    )} */}
+                {nearbyProperty.length >  0 && (
+                <div className="property-grid">
+                    {nearbyProperty.map((propertyItem, index) => (
+                        <div className="property-container" key={index}>
+                            <input
+                                type="checkbox"
+                                onChange={() => handleCheckboxChange(propertyItem)}
+                                checked={selectedProperties.some((item) => item.property.id === propertyItem.property.id)}
+                            />
+                            <h3>{propertyItem.property.property_type}</h3>
+                            <p>
+                                {propertyItem.property.locality}<br />
+                                {propertyItem.property.furnished_status}<br />
+                                {propertyItem.property.property_area} sq ft<br />
+                                Lease type: {propertyItem.property.lease_type}<br />
+                                Amenities:
+                                {propertyItem.property.internet && <span> Internet</span>}
+                                {propertyItem.property.ac && <span> AC</span>}
+                                {propertyItem.property.ro && <span> RO</span>}
+                                {propertyItem.property.kitchen && <span> Kitchen</span>}
+                                {propertyItem.property.geezer && <span> Geezer</span>}
+                            </p>
+                        </div>
+                    ))}
+                    {selectedProperties.length > 0 && (<div>
+                <h2>Selected Properties:</h2>
+                {selectedProperties.map((item, index) => (
+                    <div key={index}>
+                        <h3>{item.distance}</h3>
+                        
+                    </div>
+                ))}
+                <button type="button" style={{backgroundColor:'white',borderRadius:'20px', fontSize:'1.2rem', padding:'10px', cursor:'pointer'}} onClick={handleClick2}>Get optimised route</button>
+                {route && <button style={{backgroundColor:'grey',borderRadius:'20px', fontSize:'1.2rem', padding:'10px', cursor:'pointer'}} onClick={openGoogleMaps}>View Route on Google Maps</button>}
+            </div>)}
+                </div>
+                
+            )}
 
             
         </div>
