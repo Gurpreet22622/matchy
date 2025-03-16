@@ -7,6 +7,7 @@ import './css/home.css';
 import cityData from './city.json'
 import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
+import {ButtonWrapper} from './ui/comp.js'
 
 
 const cities = cityData.map(entry => entry.city)
@@ -273,53 +274,34 @@ function Home() {
           }));
           solveTSP(startPoint, propLocations).then(route => console.log("Optimized Route:", route));
       };
-
-
-      
-
-    // useEffect(() => {
-    //     if (isAuthenticated) {
-    //       // Sending user data to the backend after login
-    //       axios.post('http://localhost:8080/login', {
-    //         email: user.email,
-    //         username: user.nickname,
-    //         name: user.name,
-    //         role: "owner",
-    //         picture: user.picture
-    //       })
-    //       .then(response => {
-    //         console.log("User registered in backend:", response.data);
-    //         // Redirect to another page after successful registration
-    //         //window.location.href = '/owner';
-    //         navigate("/owner")
-    //       })
-    //       .catch(error => {
-    //         console.error("Error registering user:", error);
-    //       });
-    //     }
-    //   }, [isAuthenticated, user]);
-
-
-    return (
+   
+    
+        return (
         <>
-    <meta charSet="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <link rel="stylesheet" href="styles.css" />
 
     <div className="container">
         <div>
         <h1 className="title">Welcome to Our Website</h1>
         <p className="subtitle">Your journey for property deals starts here</p>
         </div>
-        <div className="button-container">
-            <button className="button primary" onClick={() => { setHost(true); setOwner(false); setLocation(null)}}>
-                Host
-            </button>
-            <button className="button secondary" onClick={() => { setHost(false); setOwner(true); setLocation(null)}}>
-                Owner
-            </button>
-        </div>
+        <ButtonWrapper>
+      <div className="container">
+        <button className="button type--C" onClick={() => navigate('/host')}>
+          <div className="button__line" />
+          <div className="button__line" />
+          <span className="button__text">Host</span>
+          <div className="button__drow1" />
+          <div className="button__drow2" />
+        </button>
+        <button className="button type--C" onClick={() => { setHost(false); setOwner(true); setLocation(null)}}>
+          <div className="button__line" />
+          <div className="button__line" />
+          <span className="button__text">Owner</span>
+          <div className="button__drow1" />
+          <div className="button__drow2" />
+        </button>
+      </div>
+    </ButtonWrapper>
 
         {Host && (
             <div className="property-wrapper">
@@ -386,27 +368,6 @@ function Home() {
                     
                 )}
             </div>
-            {/* {nearbyProperty.length > 0 && (
-        <div className="property-grid">
-            {nearbyProperty.map((propertyItem, index) => (
-                <div className="property-container" key={index}>
-                    <h3>{propertyItem.property.property_type}</h3>
-                    <p>
-                        {propertyItem.property.locality}<br />
-                        {propertyItem.property.furnished_status}<br />
-                        {propertyItem.property.property_area} sq ft<br />
-                        Lease type: {propertyItem.property.lease_type}<br />
-                        Amenities: 
-                        {propertyItem.property.internet && <span> Internet</span>}
-                        {propertyItem.property.ac && <span> AC</span>}
-                        {propertyItem.property.ro && <span> RO</span>}
-                        {propertyItem.property.kitchen && <span> Kitchen</span>}
-                        {propertyItem.property.geezer && <span> Geezer</span>}
-                    </p>
-                </div>
-            ))}
-        </div>
-    )} */}
                 {nearbyProperty.length >  0 && (
                 <div className="property-grid">
                     {nearbyProperty.map((propertyItem, index) => (
@@ -467,6 +428,7 @@ function Home() {
                 </form>
             </div>  
         )}
+    
     </div>
 </>
 

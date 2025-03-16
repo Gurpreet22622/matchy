@@ -94,29 +94,7 @@ function Owner() {
     getIdTokenClaims().then((idToken)=>{console.log("here-",idToken)})
     console.log("check items-> \npropertyType",propertyType,"\nlocation",location,"\nlocality",locality,"\npropertyarea",propertyarea,"\nleasetype",lease_type,"\nfurnishedStatus",furnished_status,"\ninternet",internet,"\nac",AC,"\nro",RO,"\ngeezer",geezer,"\nkitchen",kitchen)
 
-    // function handleChange(event) {
-    //   const selectedFile = event.target.files[0];
-  
-    //   if (selectedFile) {
-    //     const video = document.createElement('video');
-    //     video.preload = 'metadata';
-  
-    //     video.onloadedmetadata = () => {
-    //       window.URL.revokeObjectURL(video.src);
-    //       const duration = video.duration;
-  
-    //       if (duration > 300) { // 300 seconds = 5 minutes
-    //         setError('The video is too long. Please select a video that is less than 5 minutes.');
-    //         event.target.value = null; // Clear the selected file
-    //       } else {
-    //         setError('');
-    //         setFile(selectedFile); // Set the file if it passes the duration check
-    //       }
-    //     };
-  
-    //     video.src = URL.createObjectURL(selectedFile);
-    //   }
-    // }
+
     
     function handleSubmit(event) {
       event.preventDefault();
@@ -160,22 +138,6 @@ function Owner() {
     });
 
 }
-
-
-
-  
-      // const url = 'http://localhost:3000/upload';
-      // const formData = new FormData();
-      // formData.append('file', file);
-      // formData.append('fileName', file.name);
-      // const config = {
-      //   headers: {
-      //     'content-type': 'multipart/form-data',
-      //   },
-      // };
-      // axios.post(url, formData, config).then((response) => {
-      //   console.log(response.data);
-      // });
     
   
 
@@ -204,23 +166,8 @@ function Owner() {
 
 
     return(
-    //     <>
-    //         <div>
-    //             <p>
-    //                 welcome owner!
-    //             </p>
-    //             {!isAuthenticated ? (
-    //     {toHome}
-    //   ) : (
-    //     <button onClick={() => logout({ returnTo: window.location.origin })}>
-    //       Log Out
-    //     </button>
-    //   )}
-    //         </div>
-    //     </>
         <>
             <div className="form-containero">
-      {/* <button className="logout-button">Logout</button> */}
       {!isAuthenticated ? (
         ()=>{navigate('/')}
       ) : (
@@ -267,11 +214,6 @@ function Owner() {
             <input type="text" onChange={e => setLocality(e.target.value)}/>
           </div>
 
-          {/* <div className="form-groupo">
-            <h3>Upload a video file of your room!</h3>
-            <input type="file" accept="video/*" onChange={handleChange} />
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-          </div> */}
           <div className="form-groupo">
           <label htmlFor="dropdown2">What is your lease type:</label>
           <select id="dropdown2" className="form-controlo" onChange={e => setLeaseType(e.target.value)}>
