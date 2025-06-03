@@ -46,7 +46,7 @@ function Host() {
     const [loading, setLoading] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 7;
 
 
     const handleCheckboxChange = (propertyItem) => {
@@ -143,7 +143,7 @@ function Host() {
           } else {
             setNearbyProperty(data);
           }
-        //   alert("Check console for nearby properties");
+
           console.log("Nearby Properties:", nearbyProperty)
         } catch (error) {
           console.error("Error fetching properties:", error);
@@ -154,7 +154,7 @@ function Host() {
 
 
       const solveTSP = async (start, propertyLocations) => {
-        const apiKey = "5b3ce3597851110001cf62484b26d3f736534d2590b3b7e4a45bad34"; // Replace with your OpenRouteService API key
+        const apiKey = "5b3ce3597851110001cf62484b26d3f736534d2590b3b7e4a45bad34"; // OpenRouteService API key
         const locations = [
             [start.longitude, start.latitude], // Start point first
             ...propertyLocations.map((prop) => [
@@ -270,7 +270,7 @@ function Host() {
         // Sort properties by distance in ascending order
   const sortedProperties = [...nearbyProperty].sort((a, b) => a.distance - b.distance);
 
-  // Pagination logic
+  // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = sortedProperties.slice(indexOfFirstItem, indexOfLastItem);

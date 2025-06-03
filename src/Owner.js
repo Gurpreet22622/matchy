@@ -41,16 +41,17 @@ function Owner() {
     const [kitchen, setKitchen] = useState(false);
     const {user, getIdTokenClaims, logout, isAuthenticated } = useAuth0();
     const [cachedUser, setCachedUser] = useState(null);
-    // const [file, setFile] = useState()
+
     const [error,  setError] = useState('');
     const [owner, setOwner] = useState(null);
+    const [rent, setRent] = useState(0);
 
     const getCachedData = () => {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_DURATION) {
-          return data; // Return cached data if still valid
+          return data; 
         }
       }
       return null;
@@ -81,9 +82,8 @@ function Owner() {
     }, [user, isAuthenticated]);
 
     useEffect(() => {
-      axios
-        .get("http://localhost:8080/user", {
-          params: { email: cachedUser?.email }, // Query parameter
+      axios.get("http://localhost:8080/user", {
+          params: { email: cachedUser?.email }, 
         })
         .then((response) => setOwner(response.data))
         .catch((error) => console.error("Error fetching data:", error));
@@ -98,10 +98,6 @@ function Owner() {
     
     function handleSubmit(event) {
       event.preventDefault();
-      // if (!file) {
-      //   setError('Please select a valid video file.');
-      //   return;
-      // }
       if(!location){
         setError('Please add your location.');
         return;
@@ -110,6 +106,8 @@ function Owner() {
         return;
       }else if(!propertyarea){
         setError('Please add the area of your property.')
+      }else if(!rent){
+        setError('Please add your rent or predict it.')
       }else{
       setError(null)
       }
@@ -126,7 +124,8 @@ function Owner() {
         ac:AC,
         ro:RO,
         kitchen:kitchen,
-        geezer:geezer
+        geezer:geezer,
+        rent: rent
     })
     .then(response => {
         console.log("Property is registered registered in backend:", response.data);
@@ -139,6 +138,45 @@ function Owner() {
 
 }
     
+
+function predictRent(event) {
+  event.preventDefault();
+  if(!location){
+    setError('Please add your location.');
+    return;
+  }else if(!locality){
+    setError('Please add your locality.');
+    return;
+  }else if(!propertyarea){
+    setError('Please add the area of your property.')
+  }else{
+  setError(null)
+  }
+
+  axios.post('http://localhost:8080/predictR', {
+    user_id: owner.id,
+    property_type: propertyType,
+    location: {latitude:location.lat, longitude:location.lng},
+    locality: locality,
+    lease_type: lease_type,
+    furnished_status: furnished_status,
+    property_area: parseFloat(propertyarea),
+    internet:internet,
+    ac:AC,
+    ro:RO,
+    kitchen:kitchen,
+    geezer:geezer
+    }
+)
+.then(response => {
+    console.log("Rent is predicted:", response.data);
+    setRent(response.data / 10)
+})
+.catch(error => {
+    console.error("Error predicting rent:", error);
+});
+
+}
   
 
     const toHome = async()=>{
@@ -251,10 +289,25 @@ function Owner() {
 
           {error && <p style={{ color: 'red' }}>{error}</p>}
 
+          <div className="form-groupo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label htmlFor="rent">Enter rent:</label>
+            <input
+              id="rent"
+              type="text"
+              value={rent}
+              onChange={e => setRent(e.target.value)}
+              style={{ flex: '1' }}
+            />
+            <button type="button" onClick={predictRent}>
+              Predict rent
+            </button>
+          </div>
+
 
           <button onClick={handleSubmit} className="submit-buttono">Submit</button>
         </form>
     </div>
+  
         </>
 
     );
